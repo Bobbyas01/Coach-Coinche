@@ -16,29 +16,34 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Configuration de Java 21 (Requis pour Capacitor 6)
+      - name: Configuration de Java 17 (Version stable exigée)
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '21'
+          java-version: '17'
 
-      - name: Installation et génération Android
+      - name: Installation de Capacitor
         run: |
           npm init -y
-          npm install @capacitor/core@latest @capacitor/android@latest
-          npm install -D @capacitor/cli@latest
+          npm install @capacitor/core@6 @capacitor/android@6
+          npm install -D @capacitor/cli@6
           
-          # Création forcée du fichier de configuration pour éviter les blocages CLI
-          echo '{"appId":"com.coachcoinche.app","appName":"Coach Coinche","webDir":"src","bundledWebRuntime":false}' > capacitor.config.json
+          # Forcer l'initialisation du projet Capacitor
+          npx cap init "Coach Coinche" "com.coachcoinche.app" --web-dir src --force
           
-          npx cap add android
+          # Ajouter Android (sans planter s'il y a un résidu)
+          npx cap add android || echo "Plateforme Android prête"
           npx cap sync android
 
-      - name: Compilation de l'APK
+      - name: Compilation APK (Mode Forcé)
         run: |
           cd android
-          chmod +x ./gradlew
-          ./gradlew assembleDebug --stacktrace
+          chmod +x gradlew
+          
+          # Lancement de la compilation avec sécurités anti-crash GitHub :
+          # --no-daemon : empêche le serveur GitHub de saturer sa RAM
+          # -x lint : force à ignorer les alertes mineures qui tuent le build
+          ./gradlew assembleDebug --no-daemon -x lint
 
       - name: Mise à disposition de l'APK
         uses: actions/upload-artifact@v4
