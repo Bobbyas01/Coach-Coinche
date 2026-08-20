@@ -11,10 +11,10 @@ jobs:
       - name: Récupération du code
         uses: actions/checkout@v4
 
-      - name: Configuration Node.js
+      - name: Configuration Node.js (Version 22 exigée)
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22' # <--- LE CORRECTIF EST ICI
 
       - name: Configuration Java 17 (Version stable exigée)
         uses: actions/setup-java@v4
@@ -28,7 +28,7 @@ jobs:
           npm install @capacitor/core@latest @capacitor/android@latest
           npm install -D @capacitor/cli@latest
           
-          # Création du fichier de config MANUELLEMENT (C'est ce qui évite le crash des 30 secondes !)
+          # Création du fichier de config MANUELLEMENT
           echo '{
             "appId": "com.coachcoinche.app",
             "appName": "Coach Coinche",
@@ -36,7 +36,7 @@ jobs:
             "bundledWebRuntime": false
           }' > capacitor.config.json
           
-          # Sécurité : créer le dossier src s'il n'est pas détecté pour éviter une erreur
+          # Sécurité : créer le dossier src s'il n'est pas détecté
           mkdir -p src
           
           npx cap add android
@@ -46,8 +46,6 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          # --no-daemon : empêche le serveur de saturer sa mémoire
-          # -x lint : empêche la compilation de s'arrêter pour de simples avertissements de code
           ./gradlew assembleDebug --no-daemon -x lint
 
       - name: Mise à disposition de l'APK
