@@ -4,50 +4,48 @@ export default async function handler(req, res) {
   const { fileUri, mimeType } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
 
-  if (!apiKey || !fileUri) return res.status(400).json({ error: "Configuration manquante" });
-
   try {
-    const prompt = `Tu es un arbitre de Belote Coinchée. Analyse cette vidéo. 
-Ton joueur est BobbyAs (BAS de l'écran).
-1. Analyse chronologique : 1. Entame, 2. Carte joueur Bas, 3. Carte Gauche, 4. Carte Haut (Partenaire).
-2. Vérifie si le joueur en bas a respecté les règles (fournir à la couleur, pisser si permis).
-3. Si aucune erreur n'est faite, le tableau "erreurs_et_conseils" doit être VIDE [].
-Rends uniquement un JSON : 
-{ 
-  "analyse_chronologique_du_pli": "", 
-  "partie_context": { "contrat": "", "couleur_atout": "", "preneur": "", "score_final_estime": "" }, 
-  "analyse_globale": { "note_strategique": 0, "point_fort": "", "axe_amelioration": "" }, 
-  "erreurs_et_conseils": [] 
+    const prompt = `Tu es un arbitre intransigeant et un expert de la Belote Coinchée. Tu analyses une courte vidéo d'un jeu. TON JOUEUR est en BAS de l'écran (BobbyAs).
+
+RÈGLES SPÉCIFIQUES:
+- Autorisation de "pisser" (se défausser) si on ne peut pas monter à l'atout ou si le partenaire (Haut) coupe et est maître.
+- Annonces et contrats Sans Atout/Tout Atout actifs.
+
+RÈGLE ABSOLUE ANTI-HALLUCINATION :
+Ne devine JAMAIS une carte. Il est TRÈS FRÉQUENT que le joueur ne fasse aucune erreur.
+
+MÉTHODE D'ANALYSE OBLIGATOIRE (Chain of Thought) :
+Dans "analyse_chronologique_du_pli", décris formellement l'action :
+1. Cartes en main de BobbyAs.
+2. Carte d'entame (Qui et quoi).
+3. Carte jouée par BobbyAs.
+4. Carte Gauche.
+5. Carte Haut (Partenaire).
+Seulement après, juge. Si BobbyAs a bien joué, "erreurs_et_conseils" DOIT ÊTRE VIDE [].
+
+Renvoie STRICTEMENT un JSON valide :
+{
+  "analyse_chronologique_du_pli": "",
+  "partie_context": { "contrat": "", "couleur_atout": "", "preneur": "", "score_final_estime": "" },
+  "analyse_globale": { "note_strategique": 0, "point_fort": "", "axe_amelioration": "" },
+  "erreurs_et_conseils": []
 }`;
 
-    // Appel direct au modèle Flash 3.6
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
-
-    const response = await fetch(apiUrl, {
+    // BIEN SÛR, GEMINI 3.6 FLASH !
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: prompt },
-            { fileData: { mimeType: mimeType || 'video/mp4', fileUri: fileUri } }
-          ]
-        }],
+        contents: [{ parts: [{ text: prompt }, { fileData: { mimeType: mimeType || 'video/mp4', fileUri: fileUri } }] }],
         generationConfig: { responseMimeType: "application/json" }
       })
     });
 
     const data = await response.json();
-    
-    // Log complet pour le debug Vercel si jamais ça échoue encore
-    if (!response.ok) {
-        console.error("Erreur API Google :", JSON.stringify(data, null, 2));
-        throw new Error(data.error?.message || "Erreur inconnue API");
-    }
+    if (!response.ok) throw new Error(JSON.stringify(data));
 
     res.status(200).send(data.candidates[0].content.parts[0].text);
   } catch (error) {
-    console.error("Erreur Backend :", error);
     res.status(500).json({ error: error.message });
   }
 }
