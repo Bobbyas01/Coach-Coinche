@@ -1,9 +1,12 @@
+json
 {
   "appId": "com.coachcoinche.app",
   "appName": "Coach Coinche",
-  "webDir": "src",
+  "webDir": "dist",
   "bundledWebRuntime": false,
-  "server": {
-    "androidScheme": "https"
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
   }
 }
