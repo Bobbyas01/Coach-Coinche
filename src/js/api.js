@@ -2,7 +2,6 @@
 
 export async function processVideoWorkflow(file) {
     const statusDiv = document.getElementById('status');
-    // BONNE URL VERCEL OFFICIELLE :
     const API_BASE = "https://coach-coinche.vercel.app"; 
 
     try {
@@ -41,7 +40,7 @@ export async function processVideoWorkflow(file) {
         }
 
         statusDiv.innerText = "2/3 : Upload de la vidéo...";
-        // Upload direct vers Google Cloud Storage
+        // Upload direct vers Google File API
         const uploadRes = await fetch(uploadUrl, {
             method: 'POST',
             headers: { 
@@ -67,7 +66,6 @@ export async function processVideoWorkflow(file) {
         let analysisResult;
 
         if (CapacitorHttp) {
-            // Demande d'analyse via le pont natif Android
             const analyzeRes = await CapacitorHttp.post({
                 url: `${API_BASE}/api/analyze`,
                 headers: { 'Content-Type': 'application/json' },
@@ -79,7 +77,6 @@ export async function processVideoWorkflow(file) {
             }
             analysisResult = analyzeRes.data;
         } else {
-            // Fallback web
             const analyzeRes = await fetch(`${API_BASE}/api/analyze`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
