@@ -26,8 +26,8 @@ Renvoie strictement la réponse selon cette structure JSON :
   ]
 }`;
 
-    // Bypass total du SDK Google : Appel REST direct vers la route v1beta
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+    // LA CORRECTION EST ICI : Pointe vers gemini-3.1-pro
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro:generateContent?key=${apiKey}`;
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -47,12 +47,10 @@ Renvoie strictement la réponse selon cette structure JSON :
 
     const data = await response.json();
 
-    // Interception stricte des erreurs renvoyées par l'API Google
     if (!response.ok) {
       throw new Error(data.error?.message || `Erreur HTTP ${response.status}`);
     }
 
-    // Extraction du JSON généré par l'IA
     const jsonResponse = data.candidates[0].content.parts[0].text;
     
     res.status(200).send(jsonResponse); 
