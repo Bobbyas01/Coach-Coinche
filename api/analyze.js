@@ -26,8 +26,8 @@ Renvoie strictement la réponse selon cette structure JSON :
   ]
 }`;
 
-    // L'URL EXACTE ET VALIDÉE POUR LE MODÈLE FLASH
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // L'URL EXACTE ANCRÉE EN 2026 : gemini-2.5-flash
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -47,12 +47,10 @@ Renvoie strictement la réponse selon cette structure JSON :
 
     const data = await response.json();
 
-    // Interception stricte des erreurs renvoyées par l'API Google
     if (!response.ok) {
       throw new Error(data.error?.message || `Erreur HTTP ${response.status}`);
     }
 
-    // Extraction du JSON généré par l'IA
     const jsonResponse = data.candidates[0].content.parts[0].text;
     
     res.status(200).send(jsonResponse); 
