@@ -74,10 +74,7 @@ async function executeWorkflow(fileData) {
     const analysisJson = await processVideoWorkflow(fileData);
     
     if (analysisJson) {
-        // La magie opère ici : création d'une URL locale lisible par la balise <video>
         const localVideoUrl = URL.createObjectURL(fileData);
-        
-        // On envoie le JSON ET l'URL vidéo à l'interface
         renderReplayDashboard(analysisJson, localVideoUrl);
     }
     
