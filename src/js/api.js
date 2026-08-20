@@ -1,56 +1,49 @@
 // src/js/api.js
 
 export async function processVideoWorkflow(videoBlob) {
-    const updateStatus = (msg) => document.getElementById('status').innerText = msg;
+    const statusDiv = document.getElementById('status');
     
     try {
-        // ETAPE 1 : Initialisation Vercel -> Google
-        updateStatus("Étape 1/3 : Sécurisation du canal d'upload...");
-        const initRes = await fetch('/api/init-upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                mimeType: videoBlob.type,
-                byteCount: videoBlob.size.toString()
-            })
-        });
-        const initData = await initRes.json();
+        // Affichage façon terminal pour bien suivre l'avancement
+        statusDiv.innerHTML = "Étape 1/2 : Encodage de la vidéo en cours...<br>";
         
-        if (!initData.uploadUrl) throw new Error("Erreur d'initialisation de l'upload.");
-
-        // ETAPE 2 : Upload direct Mobile -> Google AI Studio
-        updateStatus("Étape 2/3 : Envoi de la vidéo à l'IA...");
-        const uploadRes = await fetch(initData.uploadUrl, {
-            method: 'PUT',
-            headers: {
-                'Content-Length': videoBlob.size.toString(),
-                'X-Goog-Upload-Offset': '0',
-                'X-Goog-Upload-Command': 'upload, finalize'
-            },
-            body: videoBlob
+        // Conversion de la vidéo en Base64 pour passer à travers Vercel
+        const base64Video = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                // On extrait uniquement la chaîne de caractères (sans l'entête data:video/mp4;base64,)
+                const base64 = reader.result.split(',')[1];
+                resolve(base64);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(videoBlob);
         });
-        const uploadData = await uploadRes.json();
-        
-        if (!uploadData.file || !uploadData.file.uri) throw new Error("Échec de l'upload vers Google.");
 
-        // ETAPE 3 : Analyse Vercel -> Gemini
-        updateStatus("Étape 3/3 : Analyse tactique du Coach Coinche en cours...");
+        statusDiv.innerHTML += "Étape 2/2 : Envoi au Coach IA (Analyse en cours, patientez)...<br>";
+        
+        // Envoi direct au backend Vercel
         const analyzeRes = await fetch('/api/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                fileUri: uploadData.file.uri,
-                mimeType: videoBlob.type
+                mimeType: videoBlob.type || 'video/mp4',
+                videoBase64: base64Video
             })
         });
         
-        const analysisJson = await analyzeRes.json();
-        updateStatus("Analyse terminée !");
+        // Gestion des erreurs serveur (ex: vidéo trop lourde > 4.5MB)
+        if (!analyzeRes.ok) {
+            const errorData = await analyzeRes.json();
+            throw new Error(errorData.error || `Erreur serveur HTTP ${analyzeRes.status}`);
+        }
         
+        const analysisJson = await analyzeRes.json();
+        
+        statusDiv.innerHTML += "✅ Analyse terminée avec succès !";
         return analysisJson;
 
     } catch (error) {
-        updateStatus(`❌ Erreur : ${error.message}`);
+        statusDiv.innerHTML += `<br>❌ Échec : ${error.message}`;
         console.error(error);
         return null;
     }
