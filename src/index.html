@@ -5,71 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Coach Coinche IA</title>
     <style>
-        body { 
-            font-family: system-ui, sans-serif; 
-            background: #121212; 
-            color: #fff; 
-            padding: 20px; 
-            text-align: center; 
-        }
-        button { 
-            background: #E53935; 
-            color: white; 
-            border: none; 
-            padding: 15px 30px; 
-            border-radius: 50px; 
-            font-size: 18px; 
-            font-weight: bold; 
-            margin-top: 20px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
-            width: 100%;
-            max-width: 350px;
-        }
-        button:disabled { 
-            background: #555 !important; 
-        }
-        #uploadBtn {
-            background: #1976D2;
-        }
-        #status { 
-            margin-top: 25px; 
-            font-size: 14px; 
-            color: #aaa; 
-            min-height: 20px;
-        }
-        #replay-container { 
-            display: none; 
-            margin-top: 30px; 
-            background: #1E1E1E; 
-            padding: 15px; 
-            border-radius: 12px; 
-            text-align: left; 
-        }
+        /* Design Mobile-First */
+        body { font-family: system-ui, sans-serif; background: #121212; color: #fff; padding: 15px; text-align: center; padding-bottom: 50px; }
+        h1 { font-size: 24px; margin-bottom: 5px; }
+        
+        /* Boutons */
+        button { border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; margin-top: 15px; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); color: white; }
+        button:disabled { background: #444 !important; color: #888; }
+        #recordBtn { background: #E53935; }
+        #uploadBtn { background: #1976D2; }
+        #status { margin-top: 15px; font-size: 14px; color: #aaa; min-height: 20px; }
+
+        /* Tableau de Bord Replay */
+        #replay-container { display: none; margin-top: 30px; text-align: left; animation: fadeIn 0.4s ease-out; }
+        .card { background: #1E1E1E; padding: 16px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid #1976D2; }
+        .card h3 { margin: 0 0 12px 0; font-size: 18px; color: #64B5F6; }
+        
+        /* Cartes d'Erreurs */
+        .error-card { border-left: 4px solid #E53935; background: #2a1616; }
+        .error-card h3 { color: #E53935; }
+        
+        /* Badges et Grilles */
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; background: #E53935; margin-bottom: 12px; }
+        .badge.moderate { background: #F57C00; }
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px; margin-bottom: 12px; }
+        .data-label { color: #aaa; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .data-value { font-weight: bold; font-size: 15px; margin-top: 2px; }
+        .feedback { font-size: 14px; color: #ddd; line-height: 1.5; font-style: italic; border-top: 1px solid #444; padding-top: 10px; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
     <h1>Coach Coinche</h1>
-    <p>Enregistrez ou importez votre donne pour l'analyse IA</p>
+    <p style="color: #aaa; font-size: 14px; margin-bottom: 30px;">Analyse multimodale de vos donnes</p>
 
-    <!-- Bouton principal d'action (Pour le futur Capacitor) -->
+    <!-- Contrôles -->
     <button id="recordBtn">🔴 Démarrer l'enregistrement</button>
-    
-    <!-- Bouton de contournement pour test sur navigateur mobile -->
     <button id="uploadBtn">📁 Uploader une vidéo de test</button>
     <input type="file" id="videoInput" accept="video/mp4,video/webm" style="display: none;">
-    
-    <!-- Suivi du processus métier -->
     <div id="status">Prêt.</div>
 
-    <!-- Conteneur pour la Phase 4 -->
-    <div id="replay-container">
-        <h2>Analyse Terminée</h2>
-        <pre id="jsonOutput" style="overflow-x: auto; font-size: 12px;"></pre>
-    </div>
+    <!-- Interface dynamique injectée par JS -->
+    <div id="replay-container"></div>
 
-    <!-- Chargement de nos scripts -->
+    <!-- Scripts -->
     <script type="module" src="./js/api.js"></script>
+    <script type="module" src="./js/replay.js"></script>
     <script type="module" src="./js/app.js"></script>
 </body>
 </html>
