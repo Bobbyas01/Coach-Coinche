@@ -14,9 +14,24 @@ export default async function handler(req, res) {
   }
 
   try {
-    const prompt = `Tu es un expert mondial de la Belote Coinchée. Tu connais parfaitement les règles classiques, les probabilités, la gestion des atouts, les impasses et les appels à la défausse.
-Analyse la vidéo de cette donne jouée sur mobile.
-Ton objectif est de repérer les erreurs stratégiques du joueur qui enregistre (cartes jouées, erreurs d'annonces, mauvaise lecture du jeu).
+    // LE SUPER PROMPT : Structuration spatiale et logique
+    const prompt = `Tu es un expert mondial de la Belote Coinchée et un analyste vidéo. 
+Tu analyses une capture vidéo d'un jeu sur smartphone.
+
+REGLES DE LECTURE SPATIALE DE L'ÉCRAN (CRUCIAL) :
+1. TON JOUEUR (Celui qu'on conseille) : Ses cartes sont visibles en BAS de l'écran.
+2. LE PARTENAIRE : Il est situé en HAUT de l'écran. C'est l'allié du joueur.
+3. LES ADVERSAIRES : Ils sont situés à GAUCHE et à DROITE de l'écran. (Ex: "Serge" ou d'autres noms sur les côtés).
+
+ANALYSE LOGIQUE DU PLI :
+- Regarde TRÈS attentivement D'OÙ part la première carte jouée (l'entame). Si elle vient de la gauche/droite, c'est l'adversaire qui entame. Si elle vient du haut, c'est le partenaire.
+- Suis l'ordre d'apparition des cartes au centre de la table.
+- Ne confonds jamais une carte jouée par le partenaire (Haut) avec une carte jouée par un adversaire (Côtés).
+- Si le partenaire (Haut) coupe une carte de l'adversaire, le pli appartient à TON équipe.
+
+Ton objectif est de repérer les erreurs stratégiques du joueur en BAS (mauvaise défausse, coupe sur le partenaire, oubli d'appel).
+Si aucune erreur majeure n'est faite par le joueur, indique-le clairement.
+
 Renvoie strictement la réponse selon cette structure JSON :
 {
   "partie_context": { "contrat": "", "couleur_atout": "", "preneur": "", "score_final_estime": "" },
@@ -26,7 +41,6 @@ Renvoie strictement la réponse selon cette structure JSON :
   ]
 }`;
 
-    // L'URL EXACTE EXIGÉE PAR GOOGLE : gemini-3.6-flash
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
     const response = await fetch(apiUrl, {
