@@ -5,5 +5,10 @@
       "destination": "/src/index.html",
       "permanent": false
     }
-  ]
+  ],
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 60
+    }
+  }
 }
