@@ -14,26 +14,23 @@ export default async function handler(req, res) {
   }
 
   try {
-    // LE SUPER PROMPT : Structuration spatiale et logique
-    const prompt = `Tu es un expert mondial de la Belote Coinchée et un analyste vidéo. 
-Tu analyses une capture vidéo d'un jeu sur smartphone.
+    // PROMPT EXPERT : Règles spécifiques et Chaîne de Pensée (CoT)
+    const prompt = `Tu es un expert mondial de la Belote Coinchée et un analyste vidéo.
+Tu analyses une capture vidéo d'un jeu sur smartphone. TON JOUEUR (celui que tu conseilles) est "BobbyAs" situé en BAS de l'écran.
 
-REGLES DE LECTURE SPATIALE DE L'ÉCRAN (CRUCIAL) :
-1. TON JOUEUR (Celui qu'on conseille) : Ses cartes sont visibles en BAS de l'écran.
-2. LE PARTENAIRE : Il est situé en HAUT de l'écran. C'est l'allié du joueur.
-3. LES ADVERSAIRES : Ils sont situés à GAUCHE et à DROITE de l'écran. (Ex: "Serge" ou d'autres noms sur les côtés).
+RÈGLES SPÉCIFIQUES DE CETTE PARTIE :
+- Surcoupe sur le partenaire : Il est autorisé de "pisser" (se défausser d'une autre couleur) si le partenaire est maître du pli ou si l'on ne peut pas monter à l'atout.
+- Annonces : Les annonces classiques (Tierce, Cinquante, Cent, Carré) sont actives et doivent être annoncées au 1er pli (sauf la Belote/Rebelote).
+- Contrats : Les contrats Sans Atout (SA) et Tout Atout (TA) sont actifs et doivent être reconnus.
 
-ANALYSE LOGIQUE DU PLI :
-- Regarde TRÈS attentivement D'OÙ part la première carte jouée (l'entame). Si elle vient de la gauche/droite, c'est l'adversaire qui entame. Si elle vient du haut, c'est le partenaire.
-- Suis l'ordre d'apparition des cartes au centre de la table.
-- Ne confonds jamais une carte jouée par le partenaire (Haut) avec une carte jouée par un adversaire (Côtés).
-- Si le partenaire (Haut) coupe une carte de l'adversaire, le pli appartient à TON équipe.
+MÉTHODE D'ANALYSE CHRONOLOGIQUE OBLIGATOIRE (Chain of Thought) :
+Pour ne jamais confondre les joueurs, tu vas décomposer l'action. Dans le champ "analyse_chronologique_du_pli" de ton JSON, tu DOIS décrire textuellement l'ordre du pli avant de faire ton analyse.
+Exemple de logique attendue : "1. L'adversaire de Droite entame l'As de Pique. 2. BobbyAs (Bas) fournit le 7 de Pique. 3. L'adversaire de Gauche joue le Valet de Pique. 4. Le Partenaire (Haut) coupe avec le 10 de Cœur."
+Seulement après avoir établi cette chronologie stricte, juge si BobbyAs (Bas) a commis une erreur stratégique.
 
-Ton objectif est de repérer les erreurs stratégiques du joueur en BAS (mauvaise défausse, coupe sur le partenaire, oubli d'appel).
-Si aucune erreur majeure n'est faite par le joueur, indique-le clairement.
-
-Renvoie strictement la réponse selon cette structure JSON :
+Renvoie STRICTEMENT la réponse selon ce format JSON valide :
 {
+  "analyse_chronologique_du_pli": "",
   "partie_context": { "contrat": "", "couleur_atout": "", "preneur": "", "score_final_estime": "" },
   "analyse_globale": { "note_strategique": 0, "point_fort": "", "axe_amelioration": "" },
   "erreurs_et_conseils": [
