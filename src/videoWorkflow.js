@@ -1,7 +1,7 @@
 import { CapacitorHttp } from '@capacitor/core';
 
 export async function processVideoWorkflow(file) {
-    const API_BASE = "[https://n-coinche.vercel.app](https://n-coinche.vercel.app)";
+    const API_BASE = "https://n-coinche.vercel.app";
 
     try {
         // 1. Obtenir l'URL d'upload (Requête Native)
