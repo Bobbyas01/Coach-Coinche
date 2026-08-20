@@ -30,9 +30,9 @@ Renvoie strictement la réponse selon cette structure JSON :
   ]
 }`;
 
-    // Appel standardisé et à jour
+    // Mise à jour vers le modèle actuel (2026)
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-pro",
+      model: "gemini-3.1-pro",
       generationConfig: { 
         responseMimeType: "application/json" 
       }
