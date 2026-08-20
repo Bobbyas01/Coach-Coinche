@@ -1,29 +1,46 @@
-name: Android Build
-on: [push]
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with: 
-          node-version: '18'
-          
-      - name: Installer Capacitor (L'étape manquante)
+      - name: Récupération du code
+        uses: actions/checkout@v4
+
+      - name: Configuration de Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configuration de Java 17 (REQUIS POUR ANDROID)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Initialisation du projet et de Capacitor
         run: |
           npm init -y
           npm install @capacitor/core @capacitor/android
           npm install -D @capacitor/cli
+          # Création dynamique de la configuration (Évite les crashs)
+          npx cap init "Coach Coinche" "com.coachcoinche.app" --web-dir src
           npx cap add android
           npx cap sync android
-          
-      - name: Build APK
-        run: cd android && ./gradlew assembleDebug
-        
-      - name: Upload APK
-        uses: actions/upload-artifact@v3
-        with: 
-          name: 'CoachCoinche-APK'
-          path: 'android/app/build/outputs/apk/debug/app-debug.apk'
+
+      - name: Compilation de l'APK
+        run: |
+          cd android
+          # Autorisation d'exécution pour Gradle
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+
+      - name: Mise à disposition de l'APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CoachCoinche-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
