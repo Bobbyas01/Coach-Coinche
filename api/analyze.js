@@ -31,7 +31,6 @@ Renvoie STRICTEMENT un JSON valide :
   "erreurs_et_conseils": []
 }`;
 
-    // BIEN SÛR, GEMINI 3.6 FLASH !
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
