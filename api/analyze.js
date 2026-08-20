@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default async function handler(req, res) {
+  // 1. Sécurisation des méthodes autorisées
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
@@ -8,11 +9,12 @@ export default async function handler(req, res) {
   const { mimeType, videoBase64 } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
 
+  // 2. Validation stricte des entrées pour éviter les crashs silencieux
   if (!apiKey) {
-    return res.status(500).json({ error: "Clé API Gemini manquante sur Vercel." });
+    return res.status(500).json({ error: "Configuration manquante : Clé API Gemini introuvable sur Vercel." });
   }
   if (!videoBase64) {
-    return res.status(400).json({ error: "Aucune vidéo reçue." });
+    return res.status(400).json({ error: "Requête invalide : Aucune donnée vidéo Base64 reçue." });
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
@@ -30,14 +32,15 @@ Renvoie strictement la réponse selon cette structure JSON :
   ]
 }`;
 
-    // Mise à jour vers le modèle actuel (2026)
+    // 3. Utilisation de l'identifiant canonique API pour le modèle Pro
     const model = genAI.getGenerativeModel({
-      model: "gemini-3.1-pro",
+      model: "gemini-1.5-pro",
       generationConfig: { 
         responseMimeType: "application/json" 
       }
     });
 
+    // 4. Exécution de la requête multimodale
     const result = await model.generateContent([
       {
         inlineData: {
@@ -49,9 +52,13 @@ Renvoie strictement la réponse selon cette structure JSON :
     ]);
 
     const jsonResponse = result.response.text();
+    
+    // 5. Renvoi du JSON structuré au frontend
     res.status(200).send(jsonResponse); 
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    // Interception des erreurs de l'API Google pour les afficher proprement sur ton mobile
+    console.error("Erreur API Gemini :", error);
+    res.status(500).json({ error: `Erreur du modèle IA : ${error.message}` });
   }
 }
