@@ -1,4 +1,3 @@
-// src/js/app.js
 import { processVideoWorkflow } from './api.js';
 
 let mediaRecorder;
@@ -6,7 +5,11 @@ let recordedChunks = [];
 let isRecording = false;
 
 const recordBtn = document.getElementById('recordBtn');
+const uploadBtn = document.getElementById('uploadBtn');
+const videoInput = document.getElementById('videoInput');
 const statusDiv = document.getElementById('status');
+
+// --- LOGIQUE DE CAPTURE D'ÉCRAN (WEB STANDARD / FUTUR CAPACITOR) ---
 
 recordBtn.addEventListener('click', async () => {
     if (!isRecording) {
@@ -18,12 +21,10 @@ recordBtn.addEventListener('click', async () => {
 
 async function startRecording() {
     try {
-        // Demande d'autorisation de capture d'écran (Standard Web, compatible Capacitor plus tard)
         const stream = await navigator.mediaDevices.getDisplayMedia({ 
             video: { displaySurface: "default" } 
         });
         
-        // MimeType optimisé pour une compatibilité web/mobile
         const options = { mimeType: 'video/webm;codecs=vp8' };
         mediaRecorder = new MediaRecorder(stream, options);
         
@@ -35,8 +36,11 @@ async function startRecording() {
         
         mediaRecorder.start();
         isRecording = true;
+        
+        // Mise à jour de l'UI
         recordBtn.innerText = "⬛ Stopper l'enregistrement";
         recordBtn.style.background = "#555";
+        uploadBtn.disabled = true;
         statusDiv.innerText = "Enregistrement en cours... Jouez votre donne !";
 
     } catch (err) {
@@ -47,26 +51,50 @@ async function startRecording() {
 
 function stopRecording() {
     mediaRecorder.stop();
-    // Couper les flux vidéo pour retirer l'icône rouge du navigateur
     mediaRecorder.stream.getTracks().forEach(track => track.stop()); 
     isRecording = false;
+    
+    // Mise à jour de l'UI
     recordBtn.innerText = "🔴 Démarrer l'enregistrement";
     recordBtn.style.background = "#E53935";
-    recordBtn.disabled = true; // On désactive pendant le traitement
+    recordBtn.disabled = true; 
 }
 
 async function handleVideoStop() {
     const videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
-    recordedChunks = []; // Reset pour la prochaine partie
+    recordedChunks = []; 
 
-    // Lancement du workflow réseau
-    const analysisJson = await processVideoWorkflow(videoBlob);
+    await executeWorkflow(videoBlob);
+}
+
+// --- LOGIQUE D'UPLOAD MANUEL (TEST MOBILE SUR FIREFOX) ---
+
+uploadBtn.addEventListener('click', () => videoInput.click());
+
+videoInput.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    statusDiv.innerText = `Fichier ${file.name} sélectionné. Lancement du workflow...`;
+    
+    // Mise à jour de l'UI
+    uploadBtn.disabled = true;
+    recordBtn.disabled = true;
+
+    await executeWorkflow(file);
+});
+
+// --- ORCHESTRATEUR COMMUN ---
+
+async function executeWorkflow(fileData) {
+    const analysisJson = await processVideoWorkflow(fileData);
     
     if (analysisJson) {
-        // Affichage temporaire du JSON brut avant la Phase 4
         document.getElementById('replay-container').style.display = 'block';
         document.getElementById('jsonOutput').innerText = JSON.stringify(analysisJson, null, 2);
     }
     
+    // Réactivation de l'interface
+    uploadBtn.disabled = false;
     recordBtn.disabled = false;
 }
