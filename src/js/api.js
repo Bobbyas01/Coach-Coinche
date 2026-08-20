@@ -2,62 +2,36 @@ export async function processVideoWorkflow(file) {
     const statusDiv = document.getElementById('status');
     
     try {
-        // ÉTAPE 1
-        statusDiv.innerText = "Étape 1/4 : Initialisation...";
-        const initRes = await fetch('/api/init-upload', { method: 'POST' });
-        const initData = await initRes.json();
-        if (!initData.uploadUrl) throw new Error("URL d'upload non reçue");
-
-        // ÉTAPE 2 : On finalise le protocole d'upload exigé par Google
-        statusDiv.innerText = "Étape 2/4 : Envoi vers Google (Direct)...";
-        const uploadRes = await fetch(initData.uploadUrl, { 
-            method: 'POST', 
-            headers: { 
-                'X-Goog-Upload-Command': 'upload, finalize',
-                'X-Goog-Upload-Offset': '0'
-            }, 
-            body: file 
+        statusDiv.innerText = "Étape 1/2 : Encodage de la vidéo en cours...";
+        
+        const reader = new FileReader();
+        const base64Promise = new Promise((resolve, reject) => {
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = error => reject(error);
         });
-        
-        // C'est ICI que l'on reçoit l'URI de la vidéo (une fois stockée)
-        const uploadData = await uploadRes.json();
-        const fileUri = uploadData.file.uri;
-        const fileName = uploadData.file.name;
+        reader.readAsDataURL(file);
+        const videoBase64 = await base64Promise;
 
-        // ÉTAPE 3 : Boucle d'attente (avec le vrai nom du fichier)
-        statusDiv.innerText = "Étape 3/4 : Traitement Google (indexation)...";
-        let isReady = false;
+        statusDiv.innerText = "Étape 2/2 : Analyse IA (Modèle : Gemini 3.6 Flash)...";
         
-        while (!isReady) {
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            const statusRes = await fetch('/api/check-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fileName })
-            });
-            const statusData = await statusRes.json();
-            
-            if (statusData.state === 'ACTIVE') {
-                isReady = true;
-            } else if (statusData.state === 'FAILED') {
-                throw new Error("L'API Google a rejeté la vidéo.");
-            }
-        }
-
-        // ÉTAPE 4
-        statusDiv.innerText = "Étape 4/4 : Analyse IA (Gemini 3.6 Flash)...";
-        const analyzeRes = await fetch('/api/analyze', {
+        // URL ABSOLUE REQUISE POUR L'APPLICATION ANDROID !
+        const analyzeRes = await fetch('https://n-coinche.vercel.app/api/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fileUri, mimeType: file.type })
+            body: JSON.stringify({ mimeType: file.type, videoBase64: videoBase64 })
         });
         
         const result = await analyzeRes.json();
-        if (analyzeRes.ok) return result;
-        else throw new Error(result.error || "Erreur analyse");
+        
+        if (analyzeRes.ok) {
+            statusDiv.innerHTML = "✅ Analyse terminée avec succès !";
+            return result;
+        } else {
+            throw new Error(result.error || "Erreur d'analyse IA");
+        }
 
     } catch (error) {
-        statusDiv.innerText = "❌ Échec : " + error.message;
+        statusDiv.innerHTML = `<span style="color: #E53935;">❌ Échec : ${error.message}</span>`;
         return null;
     }
 }
