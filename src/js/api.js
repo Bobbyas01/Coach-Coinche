@@ -1,5 +1,4 @@
 // src/js/api.js
-import { CapacitorHttp } from '@capacitor/core';
 
 export async function processVideoWorkflow(file) {
     const statusDiv = document.getElementById('status');
@@ -8,25 +7,42 @@ export async function processVideoWorkflow(file) {
     try {
         statusDiv.innerText = "1/3 : Initialisation...";
         
-        // CORRECTION : Utilisation de CapacitorHttp pour les appels vers Vercel 
-        // afin de contourner les blocages réseau/CORS du WebView Android.
-        const initRes = await CapacitorHttp.post({
-            url: `${API_BASE}/api/get-upload-url`,
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Goog-Upload-Header-Content-Length': file.size.toString(),
-                'X-Goog-Upload-Header-Content-Type': file.type || 'video/mp4'
-            }
-        });
+        // Récupération sécurisée du plugin HTTP natif de Capacitor (disponible globalement)
+        const CapacitorHttp = window.Capacitor?.Plugins?.CapacitorHttp;
 
-        if (initRes.status >= 400 || !initRes.data?.uploadUrl) {
-            throw new Error(`Erreur init (${initRes.status}): ${JSON.stringify(initRes.data)}`);
+        let uploadUrl;
+
+        if (CapacitorHttp) {
+            // Mode Natif Android (via CapacitorHttp pour contourner les CORS et le WebView)
+            const initRes = await CapacitorHttp.post({
+                url: `${API_BASE}/api/get-upload-url`,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Goog-Upload-Header-Content-Length': file.size.toString(),
+                    'X-Goog-Upload-Header-Content-Type': file.type || 'video/mp4'
+                }
+            });
+
+            if (initRes.status >= 400 || !initRes.data?.uploadUrl) {
+                throw new Error(`Erreur init (${initRes.status}): ${JSON.stringify(initRes.data)}`);
+            }
+            uploadUrl = initRes.data.uploadUrl;
+        } else {
+            // Mode Navigateur Web (pour les tests sur PC si besoin)
+            const initRes = await fetch(`${API_BASE}/api/get-upload-url`, {
+                method: 'POST',
+                headers: {
+                    'X-Goog-Upload-Header-Content-Length': file.size.toString(),
+                    'X-Goog-Upload-Header-Content-Type': file.type || 'video/mp4'
+                }
+            });
+            const data = await initRes.json();
+            if (!initRes.ok) throw new Error(data.error || "Erreur d'initialisation");
+            uploadUrl = data.uploadUrl;
         }
-        
-        const uploadUrl = initRes.data.uploadUrl;
 
         statusDiv.innerText = "2/3 : Upload de la vidéo...";
-        // L'upload direct vers Google Cloud Storage (via l'URL signée fournie)
+        // Upload direct du fichier binaire vers Google Cloud Storage
         const uploadRes = await fetch(uploadUrl, {
             method: 'POST',
             headers: { 
@@ -50,19 +66,33 @@ export async function processVideoWorkflow(file) {
 
         statusDiv.innerText = "3/3 : Analyse IA...";
         
-        // CORRECTION : Utilisation de CapacitorHttp pour demander l'analyse au backend Vercel
-        const analyzeRes = await CapacitorHttp.post({
-            url: `${API_BASE}/api/analyze`,
-            headers: { 'Content-Type': 'application/json' },
-            data: { fileUri: fileUri }
-        });
+        let analysisResult;
 
-        if (analyzeRes.status >= 400) {
-            throw new Error(`Erreur analyse (${analyzeRes.status}): ${JSON.stringify(analyzeRes.data)}`);
+        if (CapacitorHttp) {
+            // Demande d'analyse via le pont natif Android
+            const analyzeRes = await CapacitorHttp.post({
+                url: `${API_BASE}/api/analyze`,
+                headers: { 'Content-Type': 'application/json' },
+                data: { fileUri: fileUri }
+            });
+
+            if (analyzeRes.status >= 400) {
+                throw new Error(`Erreur analyse (${analyzeRes.status}): ${JSON.stringify(analyzeRes.data)}`);
+            }
+            analysisResult = analyzeRes.data;
+        } else {
+            // Fallback web
+            const analyzeRes = await fetch(`${API_BASE}/api/analyze`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fileUri: fileUri })
+            });
+            analysisResult = await analyzeRes.json();
+            if (!analyzeRes.ok) throw new Error(analysisResult.error || "Erreur d'analyse");
         }
         
         statusDiv.innerText = "✅ Analyse terminée !";
-        return analyzeRes.data;
+        return analysisResult;
 
     } catch (error) {
         console.error("Erreur workflow:", error);
