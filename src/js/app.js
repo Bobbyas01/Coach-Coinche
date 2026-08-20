@@ -1,6 +1,6 @@
 // src/js/app.js
 import { processVideoWorkflow } from './api.js';
-import { renderReplayDashboard } from './replay.js'; // L'import magique
+import { renderReplayDashboard } from './replay.js'; 
 
 let mediaRecorder;
 let recordedChunks = [];
@@ -33,7 +33,7 @@ async function startRecording() {
         recordBtn.style.background = "#555";
         uploadBtn.disabled = true;
         statusDiv.innerText = "Enregistrement en cours...";
-        replayContainer.style.display = "none"; // Masquer l'ancienne analyse
+        replayContainer.style.display = "none"; 
     } catch (err) {
         statusDiv.innerText = "❌ Permission de capture refusée.";
     }
@@ -54,7 +54,7 @@ async function handleVideoStop() {
     await executeWorkflow(videoBlob);
 }
 
-// --- LOGIQUE D'UPLOAD MANUEL (TEST MOBILE) ---
+// --- LOGIQUE D'UPLOAD MANUEL ---
 uploadBtn.addEventListener('click', () => videoInput.click());
 
 videoInput.addEventListener('change', async (event) => {
@@ -64,7 +64,7 @@ videoInput.addEventListener('change', async (event) => {
     statusDiv.innerText = `Lancement de l'analyse...`;
     uploadBtn.disabled = true;
     recordBtn.disabled = true;
-    replayContainer.style.display = "none"; // Masquer l'ancienne analyse
+    replayContainer.style.display = "none"; 
 
     await executeWorkflow(file);
 });
@@ -74,8 +74,11 @@ async function executeWorkflow(fileData) {
     const analysisJson = await processVideoWorkflow(fileData);
     
     if (analysisJson) {
-        // Au lieu d'afficher du JSON brut, on lance le tableau de bord !
-        renderReplayDashboard(analysisJson);
+        // La magie opère ici : création d'une URL locale lisible par la balise <video>
+        const localVideoUrl = URL.createObjectURL(fileData);
+        
+        // On envoie le JSON ET l'URL vidéo à l'interface
+        renderReplayDashboard(analysisJson, localVideoUrl);
     }
     
     uploadBtn.disabled = false;
