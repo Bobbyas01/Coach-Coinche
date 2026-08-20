@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     if (!apiKey) return res.status(500).json({ error: "Clé API Gemini introuvable." });
 
     try {
-        const response = await fetch(`[https://generativelanguage.googleapis.com/upload/v1beta/files?key=$](https://generativelanguage.googleapis.com/upload/v1beta/files?key=$){apiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`, {
             method: 'POST',
             headers: {
                 'X-Goog-Upload-Protocol': 'resumable',
