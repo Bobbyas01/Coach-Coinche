@@ -2,18 +2,17 @@
 
 export async function processVideoWorkflow(file) {
     const statusDiv = document.getElementById('status');
-    const API_BASE = "https://n-coinche.vercel.app"; // Ton URL Vercel
+    // BONNE URL VERCEL OFFICIELLE :
+    const API_BASE = "https://coach-coinche.vercel.app"; 
 
     try {
         statusDiv.innerText = "1/3 : Initialisation...";
         
-        // Récupération sécurisée du plugin HTTP natif de Capacitor (disponible globalement)
         const CapacitorHttp = window.Capacitor?.Plugins?.CapacitorHttp;
-
         let uploadUrl;
 
         if (CapacitorHttp) {
-            // Mode Natif Android (via CapacitorHttp pour contourner les CORS et le WebView)
+            // Mode Natif Android
             const initRes = await CapacitorHttp.post({
                 url: `${API_BASE}/api/get-upload-url`,
                 headers: {
@@ -28,7 +27,7 @@ export async function processVideoWorkflow(file) {
             }
             uploadUrl = initRes.data.uploadUrl;
         } else {
-            // Mode Navigateur Web (pour les tests sur PC si besoin)
+            // Mode Web (Navigateur)
             const initRes = await fetch(`${API_BASE}/api/get-upload-url`, {
                 method: 'POST',
                 headers: {
@@ -42,7 +41,7 @@ export async function processVideoWorkflow(file) {
         }
 
         statusDiv.innerText = "2/3 : Upload de la vidéo...";
-        // Upload direct du fichier binaire vers Google Cloud Storage
+        // Upload direct vers Google Cloud Storage
         const uploadRes = await fetch(uploadUrl, {
             method: 'POST',
             headers: { 
@@ -65,7 +64,6 @@ export async function processVideoWorkflow(file) {
         }
 
         statusDiv.innerText = "3/3 : Analyse IA...";
-        
         let analysisResult;
 
         if (CapacitorHttp) {
