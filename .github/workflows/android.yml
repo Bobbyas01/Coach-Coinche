@@ -14,13 +14,13 @@ jobs:
       - name: Configuration Node.js (Version 22 exigée)
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # <--- LE CORRECTIF EST ICI
+          node-version: '22'
 
-      - name: Configuration Java 17 (Version stable exigée)
+      - name: Configuration Java 21 (Version requise par Capacitor 6) # MODIFIÉ ICI
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21' # MODIFIÉ ICI
 
       - name: Installation Capacitor (Mode Forcé)
         run: |
