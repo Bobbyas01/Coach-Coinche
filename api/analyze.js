@@ -4,11 +4,33 @@ export default async function handler(req, res) {
   const { fileUri, mimeType } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
 
+  if (!apiKey || !fileUri) return res.status(400).json({ error: "Données manquantes" });
+
   try {
+    // 1. EXTRACTION DU NOM DU FICHIER (nécessaire pour vérifier le statut)
+    const fileId = fileUri.split('/').pop();
+    const statusUrl = `https://generativelanguage.googleapis.com/v1beta/files/${fileId}?key=${apiKey}`;
+
+    // 2. POLLING : On attend que Google ait fini de traiter la vidéo
+    let isActive = false;
+    for (let i = 0; i < 5; i++) { // Max 5 tentatives (10 secondes)
+      const statusRes = await fetch(statusUrl);
+      const fileData = await statusRes.json();
+      
+      if (fileData.state === "ACTIVE") {
+        isActive = true;
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Attente 2s
+    }
+
+    if (!isActive) throw new Error("Le traitement vidéo est trop long (Processing timeout).");
+
+    // 3. ANALYSE (Le fichier est maintenant prêt)
     const prompt = `Tu es un expert mondial de la Belote Coinchée. Analyse ce pli. 
-BobbyAs (Bas) joue contre Serge (Droite) et l'autre adversaire (Gauche). Partenaire est en Haut.
-- Respecte les règles : Annonces, Sans Atout/Tout Atout, et le droit de pisser sur une coupe du partenaire.
-- Utilise une chaîne de pensée pour chronométrer le pli avant de juger.
+- BobbyAs (Bas) joue contre Serge (Droite) et l'adversaire Gauche. Partenaire est en Haut.
+- Respecte les règles : Annonces, Sans Atout/Tout Atout, et le droit de pisser.
+- Analyse chronologique d'abord, puis erreurs stratégiques.
 - Rends uniquement un JSON avec : 
 { "analyse_chronologique_du_pli": "", "partie_context": {...}, "analyse_globale": {...}, "erreurs_et_conseils": [...] }`;
 
