@@ -4,36 +4,23 @@ export default async function handler(req, res) {
   const { fileUri, mimeType } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
 
-  if (!apiKey || !fileUri) return res.status(400).json({ error: "Données manquantes" });
+  if (!apiKey || !fileUri) return res.status(400).json({ error: "Configuration manquante" });
 
   try {
-    // 1. EXTRACTION DU NOM DU FICHIER (nécessaire pour vérifier le statut)
-    const fileId = fileUri.split('/').pop();
-    const statusUrl = `https://generativelanguage.googleapis.com/v1beta/files/${fileId}?key=${apiKey}`;
+    const prompt = `Tu es un arbitre de Belote Coinchée. Analyse cette vidéo. 
+Ton joueur est BobbyAs (BAS de l'écran).
+1. Analyse chronologique : 1. Entame, 2. Carte joueur Bas, 3. Carte Gauche, 4. Carte Haut (Partenaire).
+2. Vérifie si le joueur en bas a respecté les règles (fournir à la couleur, pisser si permis).
+3. Si aucune erreur n'est faite, le tableau "erreurs_et_conseils" doit être VIDE [].
+Rends uniquement un JSON : 
+{ 
+  "analyse_chronologique_du_pli": "", 
+  "partie_context": { "contrat": "", "couleur_atout": "", "preneur": "", "score_final_estime": "" }, 
+  "analyse_globale": { "note_strategique": 0, "point_fort": "", "axe_amelioration": "" }, 
+  "erreurs_et_conseils": [] 
+}`;
 
-    // 2. POLLING : On attend que Google ait fini de traiter la vidéo
-    let isActive = false;
-    for (let i = 0; i < 5; i++) { // Max 5 tentatives (10 secondes)
-      const statusRes = await fetch(statusUrl);
-      const fileData = await statusRes.json();
-      
-      if (fileData.state === "ACTIVE") {
-        isActive = true;
-        break;
-      }
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Attente 2s
-    }
-
-    if (!isActive) throw new Error("Le traitement vidéo est trop long (Processing timeout).");
-
-    // 3. ANALYSE (Le fichier est maintenant prêt)
-    const prompt = `Tu es un expert mondial de la Belote Coinchée. Analyse ce pli. 
-- BobbyAs (Bas) joue contre Serge (Droite) et l'adversaire Gauche. Partenaire est en Haut.
-- Respecte les règles : Annonces, Sans Atout/Tout Atout, et le droit de pisser.
-- Analyse chronologique d'abord, puis erreurs stratégiques.
-- Rends uniquement un JSON avec : 
-{ "analyse_chronologique_du_pli": "", "partie_context": {...}, "analyse_globale": {...}, "erreurs_et_conseils": [...] }`;
-
+    // Appel direct au modèle Flash 3.6
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
     const response = await fetch(apiUrl, {
@@ -51,10 +38,16 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message);
+    
+    // Log complet pour le debug Vercel si jamais ça échoue encore
+    if (!response.ok) {
+        console.error("Erreur API Google :", JSON.stringify(data, null, 2));
+        throw new Error(data.error?.message || "Erreur inconnue API");
+    }
 
     res.status(200).send(data.candidates[0].content.parts[0].text);
   } catch (error) {
+    console.error("Erreur Backend :", error);
     res.status(500).json({ error: error.message });
   }
 }
