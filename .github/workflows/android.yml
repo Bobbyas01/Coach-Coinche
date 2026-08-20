@@ -11,38 +11,43 @@ jobs:
       - name: Récupération du code
         uses: actions/checkout@v4
 
-      - name: Configuration de Node.js
+      - name: Configuration Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Configuration de Java 17 (Version stable exigée)
+      - name: Configuration Java 17 (Version stable exigée)
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Installation de Capacitor
+      - name: Installation Capacitor (Mode Forcé)
         run: |
           npm init -y
-          npm install @capacitor/core@6 @capacitor/android@6
-          npm install -D @capacitor/cli@6
+          npm install @capacitor/core@latest @capacitor/android@latest
+          npm install -D @capacitor/cli@latest
           
-          # Forcer l'initialisation du projet Capacitor
-          npx cap init "Coach Coinche" "com.coachcoinche.app" --web-dir src --force
+          # Création du fichier de config MANUELLEMENT (C'est ce qui évite le crash des 30 secondes !)
+          echo '{
+            "appId": "com.coachcoinche.app",
+            "appName": "Coach Coinche",
+            "webDir": "src",
+            "bundledWebRuntime": false
+          }' > capacitor.config.json
           
-          # Ajouter Android (sans planter s'il y a un résidu)
-          npx cap add android || echo "Plateforme Android prête"
+          # Sécurité : créer le dossier src s'il n'est pas détecté pour éviter une erreur
+          mkdir -p src
+          
+          npx cap add android
           npx cap sync android
 
-      - name: Compilation APK (Mode Forcé)
+      - name: Compilation APK (Mode Anti-Crash)
         run: |
           cd android
           chmod +x gradlew
-          
-          # Lancement de la compilation avec sécurités anti-crash GitHub :
-          # --no-daemon : empêche le serveur GitHub de saturer sa RAM
-          # -x lint : force à ignorer les alertes mineures qui tuent le build
+          # --no-daemon : empêche le serveur de saturer sa mémoire
+          # -x lint : empêche la compilation de s'arrêter pour de simples avertissements de code
           ./gradlew assembleDebug --no-daemon -x lint
 
       - name: Mise à disposition de l'APK
