@@ -1,8 +1,20 @@
 export default async function handler(req, res) {
+  // 1. Autorisations CORS indispensables pour l'application mobile (APK)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Gérer la requête de pré-vérification du navigateur/mobile
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Méthode non autorisée' });
 
-  const { fileUri, mimeType } = req.body;
+  const { mimeType, videoBase64 } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey || !videoBase64) return res.status(400).json({ error: "Clé API ou vidéo manquante." });
 
   try {
     const prompt = `Tu es un arbitre intransigeant et un expert de la Belote Coinchée. Tu analyses une courte vidéo d'un jeu. TON JOUEUR est en BAS de l'écran (BobbyAs).
@@ -31,17 +43,24 @@ Renvoie STRICTEMENT un JSON valide :
   "erreurs_et_conseils": []
 }`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }, { fileData: { mimeType: mimeType || 'video/mp4', fileUri: fileUri } }] }],
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType: mimeType || 'video/mp4', data: videoBase64 } }
+          ]
+        }],
         generationConfig: { responseMimeType: "application/json" }
       })
     });
 
     const data = await response.json();
-    if (!response.ok) throw new Error(JSON.stringify(data));
+    if (!response.ok) throw new Error(data.error?.message || "Erreur API Google");
 
     res.status(200).send(data.candidates[0].content.parts[0].text);
   } catch (error) {
