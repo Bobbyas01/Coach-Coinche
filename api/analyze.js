@@ -1,18 +1,27 @@
+// api/analyze.js
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default async function handler(req, res) {
+  // Sécurité de base
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
-  const { fileUri, mimeType } = req.body;
+  const { mimeType, videoBase64 } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    return res.status(500).json({ error: "Clé API Gemini non configurée sur Vercel." });
+  }
+  if (!videoBase64) {
+    return res.status(400).json({ error: "Aucune donnée vidéo reçue." });
+  }
+
   const genAI = new GoogleGenerativeAI(apiKey);
 
   try {
-    // Le prompt "Coach Coinche", injectant notre expertise métier
-    const prompt = `
-Tu es un expert mondial de la Belote Coinchée. Tu connais parfaitement les règles classiques, les probabilités, la gestion des atouts, les impasses et les appels à la défausse.
+    // Le prompt strict d'expertise Coinche
+    const prompt = `Tu es un expert mondial de la Belote Coinchée. Tu connais parfaitement les règles classiques, les probabilités, la gestion des atouts, les impasses et les appels à la défausse.
 Analyse la vidéo de cette donne jouée sur mobile.
 Ton objectif est de repérer les erreurs stratégiques du joueur qui enregistre (cartes jouées, erreurs d'annonces, mauvaise lecture du jeu).
 Renvoie strictement la réponse selon cette structure JSON :
@@ -24,29 +33,31 @@ Renvoie strictement la réponse selon cette structure JSON :
   ]
 }`;
 
-    // Initialisation du modèle Pro (idéal pour la vidéo longue)
+    // Configuration du modèle
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-pro",
       generationConfig: { 
-        responseMimeType: "application/json" // Force le respect absolu de notre contrat JSON
+        responseMimeType: "application/json" 
       }
     });
 
-    // Envoi de l'URI (stocké chez Google) et du prompt
+    // Envoi de la requête avec la vidéo injectée en Inline Data
     const result = await model.generateContent([
       {
-        fileData: { mimeType: mimeType, fileUri: fileUri }
+        inlineData: {
+          mimeType: mimeType,
+          data: videoBase64
+        }
       },
       prompt
     ]);
 
-    // Récupération de la réponse JSON brute
+    // Récupération et renvoi du JSON
     const jsonResponse = result.response.text();
-    
-    // Renvoi au frontend pour l'affichage du Replay Interactif
     res.status(200).send(jsonResponse); 
 
   } catch (error) {
+    // Capture des erreurs de Gemini (ex: quota dépassé, format refusé)
     res.status(500).json({ error: error.message });
   }
 }
