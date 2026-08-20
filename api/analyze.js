@@ -1,7 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
 export default async function handler(req, res) {
-  // 1. Sécurisation des méthodes autorisées
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
@@ -9,15 +6,12 @@ export default async function handler(req, res) {
   const { mimeType, videoBase64 } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
 
-  // 2. Validation stricte des entrées pour éviter les crashs silencieux
   if (!apiKey) {
-    return res.status(500).json({ error: "Configuration manquante : Clé API Gemini introuvable sur Vercel." });
+    return res.status(500).json({ error: "Clé API Gemini introuvable sur Vercel." });
   }
   if (!videoBase64) {
-    return res.status(400).json({ error: "Requête invalide : Aucune donnée vidéo Base64 reçue." });
+    return res.status(400).json({ error: "Aucune vidéo reçue." });
   }
-
-  const genAI = new GoogleGenerativeAI(apiKey);
 
   try {
     const prompt = `Tu es un expert mondial de la Belote Coinchée. Tu connais parfaitement les règles classiques, les probabilités, la gestion des atouts, les impasses et les appels à la défausse.
@@ -32,33 +26,39 @@ Renvoie strictement la réponse selon cette structure JSON :
   ]
 }`;
 
-    // 3. Utilisation de l'identifiant canonique API pour le modèle Pro
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-pro",
-      generationConfig: { 
-        responseMimeType: "application/json" 
-      }
+    // Bypass total du SDK Google : Appel REST direct vers la route v1beta
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType: mimeType, data: videoBase64 } }
+          ]
+        }],
+        generationConfig: { 
+          responseMimeType: "application/json" 
+        }
+      })
     });
 
-    // 4. Exécution de la requête multimodale
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: mimeType,
-          data: videoBase64
-        }
-      },
-      prompt
-    ]);
+    const data = await response.json();
 
-    const jsonResponse = result.response.text();
+    // Interception stricte des erreurs renvoyées par l'API Google
+    if (!response.ok) {
+      throw new Error(data.error?.message || `Erreur HTTP ${response.status}`);
+    }
+
+    // Extraction du JSON généré par l'IA
+    const jsonResponse = data.candidates[0].content.parts[0].text;
     
-    // 5. Renvoi du JSON structuré au frontend
     res.status(200).send(jsonResponse); 
 
   } catch (error) {
-    // Interception des erreurs de l'API Google pour les afficher proprement sur ton mobile
-    console.error("Erreur API Gemini :", error);
-    res.status(500).json({ error: `Erreur du modèle IA : ${error.message}` });
+    console.error("Erreur REST :", error);
+    res.status(500).json({ error: `Échec de l'appel direct : ${error.message}` });
   }
 }
