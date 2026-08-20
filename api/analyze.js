@@ -7,35 +7,38 @@ export default async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    return res.status(500).json({ error: "Clé API Gemini introuvable sur Vercel." });
+    return res.status(500).json({ error: "Clé API Gemini introuvable." });
   }
   if (!videoBase64) {
     return res.status(400).json({ error: "Aucune vidéo reçue." });
   }
 
   try {
-    // PROMPT EXPERT : Règles spécifiques et Chaîne de Pensée (CoT)
-    const prompt = `Tu es un expert mondial de la Belote Coinchée et un analyste vidéo.
-Tu analyses une capture vidéo d'un jeu sur smartphone. TON JOUEUR (celui que tu conseilles) est "BobbyAs" situé en BAS de l'écran.
+    // LE PROMPT ANTI-HALLUCINATION : Froid, factuel, autorisant l'absence d'erreur.
+    const prompt = `Tu es un arbitre intransigeant et un expert de la Belote Coinchée.
+Tu analyses une courte vidéo d'un jeu. TON JOUEUR est en BAS de l'écran.
 
-RÈGLES SPÉCIFIQUES DE CETTE PARTIE :
-- Surcoupe sur le partenaire : Il est autorisé de "pisser" (se défausser d'une autre couleur) si le partenaire est maître du pli ou si l'on ne peut pas monter à l'atout.
-- Annonces : Les annonces classiques (Tierce, Cinquante, Cent, Carré) sont actives et doivent être annoncées au 1er pli (sauf la Belote/Rebelote).
-- Contrats : Les contrats Sans Atout (SA) et Tout Atout (TA) sont actifs et doivent être reconnus.
+RÈGLE ABSOLUE ANTI-HALLUCINATION :
+Tu ne dois JAMAIS deviner ou inventer une carte. Si l'action est trop rapide, base-toi uniquement sur ce qui est certain.
+IL EST TRÈS FRÉQUENT QUE LE JOUEUR NE FASSE AUCUNE ERREUR. La majorité des coups sont logiques. Ton but n'est pas de trouver des fautes à tout prix.
 
-MÉTHODE D'ANALYSE CHRONOLOGIQUE OBLIGATOIRE (Chain of Thought) :
-Pour ne jamais confondre les joueurs, tu vas décomposer l'action. Dans le champ "analyse_chronologique_du_pli" de ton JSON, tu DOIS décrire textuellement l'ordre du pli avant de faire ton analyse.
-Exemple de logique attendue : "1. L'adversaire de Droite entame l'As de Pique. 2. BobbyAs (Bas) fournit le 7 de Pique. 3. L'adversaire de Gauche joue le Valet de Pique. 4. Le Partenaire (Haut) coupe avec le 10 de Cœur."
-Seulement après avoir établi cette chronologie stricte, juge si BobbyAs (Bas) a commis une erreur stratégique.
+MÉTHODE D'ANALYSE (Chain of Thought) :
+Dans le champ "analyse_chronologique_du_pli", tu DOIS procéder ainsi :
+1. Liste les cartes visibles dans la main du joueur en BAS au tout début (ex: V Coeur, As Coeur, 7 Pique...).
+2. Décris l'entame (Quelle carte ? Jouée par qui ? Droite, Gauche, Haut ou Bas ?).
+3. Décris la carte jouée par le joueur en BAS. 
+4. Est-ce que cette carte respecte les règles (fournir à la couleur demandée) ? Fournir une petite carte sous un As adverse est un EXCELLENT coup.
+
+CRITÈRE D'ERREUR :
+- Si le joueur a joué la bonne couleur, ou a "pissé" intelligemment (si autorisé car le partenaire Haut coupe), il n'y a AUCUNE ERREUR.
+- Si AUCUNE ERREUR n'est détectée, le tableau "erreurs_et_conseils" DOIT ÊTRE STRICTEMENT VIDE []. Ne crée pas d'erreur factice.
 
 Renvoie STRICTEMENT la réponse selon ce format JSON valide :
 {
   "analyse_chronologique_du_pli": "",
   "partie_context": { "contrat": "", "couleur_atout": "", "preneur": "", "score_final_estime": "" },
   "analyse_globale": { "note_strategique": 0, "point_fort": "", "axe_amelioration": "" },
-  "erreurs_et_conseils": [
-    { "timestamp_video": "", "pli_numero": 0, "carte_jouee": "", "carte_recommandee": "", "type_erreur": "", "explication_tactique": "", "gravite": "" }
-  ]
+  "erreurs_et_conseils": []
 }`;
 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
