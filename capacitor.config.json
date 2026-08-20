@@ -1,0 +1,9 @@
+{
+  "appId": "com.coachcoinche.app",
+  "appName": "Coach Coinche",
+  "webDir": "src",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}
